@@ -4,9 +4,14 @@ package com.afsandeberg.joakim.planetarylwp;
  * Created by Joakim on 2016-02-04.
  */
 
+import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.service.wallpaper.WallpaperService;
@@ -19,6 +24,7 @@ import android.view.SurfaceHolder;
 public class PlanetWallpaper extends WallpaperService {
 
     private final Handler mHandler = new Handler();
+
 
     @Override
     public void onCreate() {
@@ -37,15 +43,15 @@ public class PlanetWallpaper extends WallpaperService {
 
     class PlanetEngine extends Engine {
 
-
-        private static final float SPEED = 2f;
-        private static final float PLANET_RADIUS = 1f;
-        private static final float ORBIT_RADIUS = 5f;
-        private static final long RENDER_TIME_MS = 16;
+        private Bitmap sun = BitmapFactory.decodeResource(getResources(), R.mipmap.sun);
+        public static final float SPEED = 2f;
+        public static final float PLANET_RADIUS = 75f;
+        public static final float ORBIT_RADIUS = 5f;
+        public static final long RENDER_TIME_MS = 16;
 
         private final Paint mStroke = new Paint();
         private final Paint mSunPaint = new Paint();
-        private final Planet [] planets = new Planet[8];
+        private final Planet [] planets = new Planet[6];
 
         private float mCenterX;
         private float mCenterY;
@@ -59,19 +65,12 @@ public class PlanetWallpaper extends WallpaperService {
         private boolean mVisible;
 
         PlanetEngine() {
-            planets[0] = new Planet(Color.LTGRAY, 10, 27, 88f );
-            planets[1] = new Planet(Color.RED, 18, 44, 224.7f );
-            planets[2] = new Planet(Color.GREEN, 20, 61, 365.2f );
-            planets[3] = new Planet(Color.RED, 22, 77, 687f );
-            planets[4] = new Planet(Color.YELLOW, 50, 120, 4332f );
-            planets[5] = new Planet(Color.YELLOW, 40, 160, 10760f );
-            planets[6] = new Planet(Color.BLUE, 30, 240, 30700f );
-            planets[7] = new Planet(Color.GRAY, 26, 320, 60200f );
+
             // Create a Paint to draw the lines for our cube
             final Paint paint = mStroke;
             paint.setColor(Color.WHITE);
             paint.setAntiAlias(true);
-            paint.setStrokeWidth(3);
+            paint.setStrokeWidth(1);
             paint.setStrokeCap(Paint.Cap.ROUND);
             paint.setStyle(Paint.Style.STROKE);
 
@@ -84,6 +83,13 @@ public class PlanetWallpaper extends WallpaperService {
 
             // By default we don't get touch events, so enable them.
             setTouchEventsEnabled(true);
+            Resources resources = getResources();
+            planets[0] = new Planet(Color.LTGRAY, 10, 27, 88f, R.mipmap.mercury, resources );
+            planets[1] = new Planet(Color.RED, 18, 44, 224.7f, R.mipmap.venus, resources  );
+            planets[2] = new Planet(Color.GREEN, 20, 61, 365.2f, R.mipmap.earth, resources  );
+            planets[3] = new Planet(Color.RED, 22, 77, 687f, R.mipmap.mars, resources  );
+            planets[4] = new Planet(Color.YELLOW, 50, 120, 4332f, R.mipmap.jupiter, resources  );
+            planets[5] = new Planet(Color.YELLOW, 40, 160, 10760f, R.mipmap.saturn, resources );
         }
 
         @Override
@@ -161,18 +167,29 @@ public class PlanetWallpaper extends WallpaperService {
         void drawCircles(Canvas c){
             c.save();
             c.drawColor(Color.BLACK);
-            c.drawCircle(mCenterX, mCenterY, 12 * ORBIT_RADIUS, mSunPaint);
+            c.drawBitmap(sun, mCenterX-sun.getWidth()/2, mCenterY-sun.getHeight()/2, null);
+//            for (Planet planet : planets) {
+//                c.drawCircle(mCenterX, mCenterY, planet.getOrbitRadius() * ORBIT_RADIUS, mStroke);
+//            }
             for (Planet planet : planets) {
-                c.drawCircle(mCenterX, mCenterY, planet.getOrbitRadius() * ORBIT_RADIUS, mStroke);
-            }
-            for (Planet planet : planets) {
-                drawCircleAtOrbit(c, mCenterX, mCenterY,
-                        planet.getOrbitRadius() * ORBIT_RADIUS, angle * planet.getOrbitTime(),
-                        planet.getPlanetRadius() * PLANET_RADIUS, planet.getColor());
+                drawPlanetAtOrbit(c, mCenterX, mCenterY, angle, planet);
             }
             angle+= SPEED;
             c.restore();
         }
+
+        private void drawPlanetAtOrbit(Canvas c, float centerX, float centerY, float angle, Planet planet) {
+            float orbitRadius = planet.getOrbitRadius() * ORBIT_RADIUS;
+            float realAngle = angle*planet.getOrbitTime();
+            float realX = (float)Math.cos(realAngle)*orbitRadius + centerX;
+            float realY = (float)Math.sin(realAngle)*orbitRadius + centerY;
+//            Rect planetCoordinates = new Rect((int)(realX-planet.getPlanetRadius()/2),
+//                    (int)(realY+planet.getPlanetRadius()/2),(int)( realX + planet.getPlanetRadius()/2),
+//                    (int)(realY - planet.getPlanetRadius()/2));
+            c.drawBitmap(planet.getImage(), realX-planet.getImage().getWidth()/2, realY-planet.getImage().getHeight()/2, null);
+ //           c.drawBitmap(planet.getImage(), planet.getImageRect(),planetCoordinates , null);
+        }
+
         void  drawCircleAtOrbit(Canvas c, float centerX, float centerY, float orbitRadius, float angle, float circleRadius, Paint paint){
             float realX = (float)Math.cos(angle)*orbitRadius + centerX;
             float realY = (float)Math.sin(angle)*orbitRadius + centerY;
